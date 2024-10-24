@@ -177,18 +177,18 @@ def watch_killrate(
                 if WHITELIST_ARTILLERY:
                     if any(weapon in weapons for weapon in WEAPONS_ARTILLERY):
                         logger.info(
-                        "(whitelisted - artillery) '%s' - %s/%s/%s - Level : %s - %s kills in %s minutes (%s kill/min). Last used weapon(s) : %s",
-                        player["name"],
-                        TRANSL[player["team"]][LANG],
-                        player["unit_name"],
-                        TRANSL[player["role"]][LANG],
-                        player["level"],
-                        player["kills"],
-                        round(min(mins_since_match_start, mins_since_connected), 2),
-                        kills_per_minute,
-                        ', '.join(weapons)
-                    )
-                    continue
+                            "(whitelisted - artillery) '%s' - %s/%s/%s - Level : %s - %s kills in %s minutes (%s kill/min). Last used weapon(s) : %s",
+                            player["name"],
+                            TRANSL[player["team"]][LANG],
+                            player["unit_name"],
+                            TRANSL[player["role"]][LANG],
+                            player["level"],
+                            player["kills"],
+                            round(min(mins_since_match_start, mins_since_connected), 2),
+                            kills_per_minute,
+                            ', '.join(weapons)
+                        )
+                        continue
 
                 # Log (non-whitelisted player)
                 logger.info(
