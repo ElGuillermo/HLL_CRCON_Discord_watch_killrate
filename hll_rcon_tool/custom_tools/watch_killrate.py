@@ -3,8 +3,9 @@ watch_killrate.py
 
 A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool)
 that watches and report players who get "too much" kills per minute.
+(some strings are hardcoded in french, feel free to adapt them to your language)
 
-by https://github.com/ElGuillermo
+Source : https://github.com/ElGuillermo
 
 Feel free to use/modify/distribute, as long as you keep this note in your code
 """
@@ -13,10 +14,9 @@ import logging
 from time import sleep
 from rcon.game_logs import get_recent_logs
 from rcon.rcon import Rcon
+from rcon.player_history import get_player_profile, player_has_flag
 from rcon.settings import SERVER_INFO
 from custom_tools.custom_common import (
-    LANG,
-    TRANSL,
     WEAPONS_ARTILLERY,
     get_avatar_url,
     get_external_profile_url,
@@ -24,13 +24,15 @@ from custom_tools.custom_common import (
     send_discord_embed,
     team_view_stats
 )
-from rcon.player_history import get_player_profile, player_has_flag
+from custom_tools.custom_translations import TRANSL
 
 
 # Configuration (you must review/change these !)
 # -----------------------------------------------------------------------------
 
-# Don't forget you have some parameters to set in 'custom_common.py' too !
+# Discord embeds strings translations
+# Available : 0 for english, 1 for french, 2 for german
+LANG = 0
 
 # Send a Discord message if the player gets more kills/minute than this number
 # 1.0 = "good" (legit) players
@@ -79,7 +81,7 @@ BOT_NAME = "CRCON_watch_killrate"
 def watch_killrate_loop():
     """
     Calls the function that gathers data,
-    then call the function to analyze it.
+    then calls the function to analyze it.
     """
     rcon = Rcon(SERVER_INFO)
     (
@@ -112,7 +114,7 @@ def watch_killrate(
         exact_action=True  # Default : False
     )
     match_start_timestamp = logs_match_start["logs"][0]["timestamp_ms"] / 1000
-    mins_since_match_start = round((datetime.now() - datetime.fromtimestamp(match_start_timestamp)).total_seconds() / 60, 2)
+    mins_since_match_start = (datetime.now() - datetime.fromtimestamp(match_start_timestamp)).total_seconds() / 60
 
     # Test the infantry players (armor won't be tested)
     if mins_since_match_start > 2:  # Avoids inconsistent scores at the beginning of the game
