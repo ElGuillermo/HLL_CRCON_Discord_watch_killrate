@@ -32,5 +32,5 @@ Config :
 Any change to these files :
 - `/root/hll_rcon_tool/custom_tools/watch_killrate.py` ;
 - `/root/hll_rcon_tool/custom_tools/custom_common.py` ;
-- `/root/hll_rcon_tool/custom_tools/custom_translations.py` ;
+- `/root/hll_rcon_tool/custom_tools/custom_translations.py` ;  
 ...will need a CRCON restart (using `restart.sh` script) to be taken in account.
