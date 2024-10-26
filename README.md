@@ -28,7 +28,7 @@ Config :
   cd /root/hll_rcon_tool
   sh ./restart.sh
   ```
-Any change to these files :
+⚠️ Any change to these files :
 - `/root/hll_rcon_tool/custom_tools/watch_killrate.py` ;
 - `/root/hll_rcon_tool/custom_tools/custom_common.py` ;
 - `/root/hll_rcon_tool/custom_tools/custom_translations.py` ;  
