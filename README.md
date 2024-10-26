@@ -23,7 +23,6 @@ Install (open this file for complete procedure) :
 
 Config :
 - Edit `/root/hll_rcon_tool/custom_tools/watch_killrate.py` and set the parameters to your needs ;
-- Edit `/root/hll_rcon_tool/custom_tools/custom_common.py` and set the parameters to your needs ;
 - Restart CRCON :
   ```shell
   cd /root/hll_rcon_tool
