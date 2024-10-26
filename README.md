@@ -8,6 +8,7 @@ Install (open this file for complete procedure) :
 - Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`) ;
 - Copy `watch_killrate.py` in `/root/hll_rcon_tool/custom_tools/` ;
 - Copy `custom_common.py` in `/root/hll_rcon_tool/custom_tools/` ;
+- Copy `custom_translations.py` in `/root/hll_rcon_tool/custom_tools/` ;
 - Copy `restart.sh` in CRCON's root (`/root/hll_rcon_tool/`) ;
 - Edit `/root/hll_rcon_tool/config/supervisord.conf` to add this bot section : 
   ```conf
