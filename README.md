@@ -4,7 +4,7 @@ A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool) that wat
 
 ![image](https://github.com/user-attachments/assets/9733fc2c-e50b-43c8-89d8-404098563f45)
 
-Install (open this file for complete procedure) :
+## Install
 - Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`) ;
 - Copy `watch_killrate.py` in `/root/hll_rcon_tool/custom_tools/` ;
 - Copy `custom_common.py` in `/root/hll_rcon_tool/custom_tools/` ;
@@ -21,13 +21,15 @@ Install (open this file for complete procedure) :
   autorestart=true
   ```
 
-Config :
+## Config
 - Edit `/root/hll_rcon_tool/custom_tools/watch_killrate.py` and set the parameters to your needs ;
 - Restart CRCON :
   ```shell
   cd /root/hll_rcon_tool
   sh ./restart.sh
   ```
+
+## Limitations
 ⚠️ Any change to these files :
 - `/root/hll_rcon_tool/custom_tools/watch_killrate.py` ;
 - `/root/hll_rcon_tool/custom_tools/custom_common.py` ;
