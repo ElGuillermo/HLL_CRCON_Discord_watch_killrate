@@ -17,6 +17,13 @@ import discord  # type: ignore
 from rcon.rcon import Rcon
 from rcon.steam_utils import get_steam_api_key
 from rcon.user_config.rcon_server_settings import RconServerSettingsUserConfig
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from contextlib import contextmanager
+from typing import Generator
+from sqlalchemy import select
+from rcon.utils import get_server_number
+from discord.errors import HTTPException, NotFound
+from requests.exceptions import ConnectionError, RequestException
 
 
 # Configuration (you don't have to change these)
@@ -65,19 +72,78 @@ WEAPONS_ARTILLERY = [
 # (End of configuration)
 # -----------------------------------------------------------------------------
 
+class Base(DeclarativeBase):
+    pass
+
+
+class Watch_Balance_Message(Base):
+    __tablename__ = "stats_messages"
+
+    server_number: Mapped[int] = mapped_column(primary_key=True)
+    message_type: Mapped[str] = mapped_column(default="live", primary_key=True)
+    message_id: Mapped[int] = mapped_column(primary_key=True)
+    webhook: Mapped[str] = mapped_column(primary_key=True)
+
 
 def bold_the_highest(
     first_value: int,
     second_value: int
 ) -> str:
     """
-    Returns two strings, the highest formatted in bold
+    Returns two strings, the highest value formatted in bold
     """
     if first_value > second_value:
         return f"**{first_value}**", str(second_value)  # type: ignore
     if first_value < second_value:
         return str(first_value), f"**{second_value}**"  # type: ignore
     return str(first_value), str(second_value)  # type: ignore
+
+
+def cleanup_orphaned_messages(
+    session: Session, server_number: int, webhook_url: str
+) -> None:
+    """
+    Adapted from scorebot... Not sure about how it's working :/
+    """
+    stmt = (
+        select(Watch_Balance_Message)
+        .where(Watch_Balance_Message.server_number == server_number)
+        .where(Watch_Balance_Message.webhook == webhook_url)
+    )
+    res = session.scalars(stmt).one_or_none()
+
+    if res:
+        session.delete(res)
+
+
+@contextmanager
+def enter_session(engine) -> Generator[Session, None, None]:
+    """
+    Adapted from scorebot... Not sure about how it's working :/
+    """
+    with Session(engine) as session:
+        session.begin()
+        try:
+            yield session
+        except:
+            session.rollback()
+            raise
+        else:
+            session.commit()
+
+
+def fetch_existing(
+    session: Session, server_number: str, webhook_url: str
+) -> Watch_Balance_Message | None:
+    """
+    Adapted from scorebot... Not sure about how it's working :/
+    """
+    stmt = (
+        select(Watch_Balance_Message)
+        .where(Watch_Balance_Message.server_number == server_number)
+        .where(Watch_Balance_Message.webhook == webhook_url)
+    )
+    return session.scalars(stmt).one_or_none()
 
 
 def get_avatar_url(
@@ -94,6 +160,21 @@ def get_avatar_url(
         except Exception:
             return DEFAULT_AVATAR_STEAM
     return DEFAULT_AVATAR_STEAM
+
+
+def get_external_profile_url(
+    player_id: str,
+    player_name: str,
+) -> str:
+    """
+    Constructs the external profile url for Steam or GamePass
+    """
+    if len(player_id) == 17:
+        ext_profile_url = f"{STEAM_PROFILE_INFO_URL}{player_id}"
+    elif len(player_id) > 17:
+        gamepass_pseudo_url = player_name.replace(" ", "-")
+        ext_profile_url = f"{GAMEPASS_PROFILE_INFO_URL}{gamepass_pseudo_url}"
+    return ext_profile_url
 
 
 def get_steam_avatar(
@@ -125,19 +206,29 @@ def get_steam_avatar(
         return DEFAULT_AVATAR_STEAM
 
 
-def get_external_profile_url(
-    player_id: str,
-    player_name: str,
-) -> str:
+def green_to_red(
+        value: float,
+        min_value: float,
+        max_value: float
+    ) -> str:
     """
-    Constructs the external profile url for Steam or GamePass
+    Returns an string value
+    corresponding to a color
+    from plain green 00ff00 (value <= min_value)
+    to plain red ff0000 (value >= max_value)
+    You will have to convert it in the caller code :
+    ie for a decimal Discord embed color : int(hex_color, base=16)
     """
-    if len(player_id) == 17:
-        ext_profile_url = f"{STEAM_PROFILE_INFO_URL}{player_id}"
-    elif len(player_id) > 17:
-        gamepass_pseudo_url = player_name.replace(" ", "-")
-        ext_profile_url = f"{GAMEPASS_PROFILE_INFO_URL}{gamepass_pseudo_url}"
-    return ext_profile_url
+    if value < min_value:
+        value = min_value
+    elif value > max_value:
+        value = max_value
+    range_value = max_value - min_value
+    ratio = (value - min_value) / range_value
+    red = int(255 * ratio)
+    green = int(255 * (1 - ratio))
+    hex_color = f"{red:02x}{green:02x}00"
+    return hex_color
 
 
 def seconds_until_start(schedule) -> int:
@@ -217,31 +308,6 @@ def seconds_until_start(schedule) -> int:
     return return_value
 
 
-def green_to_red(
-        value: float,
-        min_value: float,
-        max_value: float
-    ) -> str:
-    """
-    Returns an string value
-    corresponding to a color
-    from plain green 00ff00 (value <= min_value)
-    to plain red ff0000 (value >= max_value)
-    You will have to convert it in the caller code :
-    ie for a decimal Discord embed color : int(hex_color, base=16)
-    """
-    if value < min_value:
-        value = min_value
-    elif value > max_value:
-        value = max_value
-    range_value = max_value - min_value
-    ratio = (value - min_value) / range_value
-    red = int(255 * ratio)
-    green = int(255 * (1 - ratio))
-    hex_color = f"{red:02x}{green:02x}00"
-    return hex_color
-
-
 def send_discord_embed(
     bot_name: str,
     embed_title: str,
@@ -272,6 +338,99 @@ def send_discord_embed(
     webhook.send(embeds=embeds, wait=True)
 
 
+def send_or_edit_message(
+    session: Session,
+    webhook: discord.SyncWebhook,
+    embeds: list[discord.Embed],
+    server_number: int,
+    message_id: int | None = None,
+    edit: bool = True,
+):
+    logger = logging.getLogger('rcon')
+    try:
+        # Force creation of a new message if message ID isn't set
+        if not edit or message_id is None:
+            logger.info(f"Creating a new scorebot message")
+            message = webhook.send(embeds=embeds, wait=True)
+            return message.id
+        else:
+            webhook.edit_message(message_id, embeds=embeds)
+            return message_id
+    except NotFound as ex:
+        logger.error(
+            "Message with ID: %s in our records does not exist",
+            message_id,
+        )
+        cleanup_orphaned_messages(
+            session=session,
+            server_number=server_number,
+            webhook_url=webhook.url,
+        )
+        return None
+    except (HTTPException, RequestException, ConnectionError):
+        logger.exception(
+            "Temporary failure when trying to edit message ID: %s", message_id
+        )
+    except Exception as e:
+        logger.exception("Unable to edit message. Deleting record", e)
+        cleanup_orphaned_messages(
+            session=session,
+            server_number=server_number,
+            webhook_url=webhook.url,
+        )
+        return None
+
+
+def send_or_refresh_discord_embed(
+        embed: discord.Embed,
+        webhook: discord.Webhook,
+        engine
+    ):
+    """
+    Sends an embed message to Discord
+    """
+    logger = logging.getLogger('rcon')
+    seen_messages: set[int] = set()
+    embeds = []
+    embeds.append(embed)
+    server_number = get_server_number()
+    with enter_session(engine) as session:
+        db_message = fetch_existing(
+            session=session,
+            server_number=server_number,
+            webhook_url=webhook.url,
+        )
+        if db_message:
+            message_id = db_message.message_id
+            if message_id not in seen_messages:
+                logger.info("Resuming with message_id %s" % message_id)
+                seen_messages.add(message_id)
+            message_id = send_or_edit_message(
+                session=session,
+                webhook=webhook,
+                embeds=embeds,
+                server_number=int(server_number),
+                message_id=message_id,
+                edit=True,
+            )
+        else:
+            message_id = send_or_edit_message(
+                session=session,
+                webhook=webhook,
+                embeds=embeds,
+                server_number=int(server_number),
+                message_id=None,
+                edit=False,
+            )
+            if message_id:
+                db_message = Watch_Balance_Message(
+                    server_number=server_number,
+                    message_id=message_id,
+                    webhook=webhook.url,
+                )
+                session.add(db_message)
+
+
 def team_view_stats(rcon: Rcon):
     """
     Get the get_team_view data
@@ -288,7 +447,7 @@ def team_view_stats(rcon: Rcon):
     try:
         get_team_view: dict = rcon.get_team_view()
     except Exception as error:
-        logger = logging.getLogger('rcon')
+        logger = logging.getLogger(__name__)
         logger.error("Command failed : get_team_view()\n%s", error)
         return (
             all_teams,
