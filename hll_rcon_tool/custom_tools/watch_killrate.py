@@ -1,7 +1,7 @@
 """
 watch_killrate.py
 
-A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool)
+A plugin for HLL CRCON (https://github.com/MarechJ/hll_rcon_tool)
 that watches and report players who get "too much" kills per minute.
 (some strings are hardcoded in french, feel free to adapt them to your language)
 
@@ -9,19 +9,24 @@ Source : https://github.com/ElGuillermo
 
 Feel free to use/modify/distribute, as long as you keep this note in your code
 """
+
 from datetime import datetime, timedelta, timezone
 import logging
 from time import sleep
+import discord
 from rcon.game_logs import get_recent_logs
 from rcon.rcon import Rcon
 from rcon.player_history import get_player_profile, player_has_flag
 from rcon.settings import SERVER_INFO
+from rcon.utils import get_server_number
 from custom_tools.custom_common import (
+    DISCORD_EMBED_AUTHOR_URL,
+    DISCORD_EMBED_AUTHOR_ICON_URL,
     WEAPONS_ARTILLERY,
+    discord_embed_send,
     get_avatar_url,
     get_external_profile_url,
     green_to_red,
-    send_discord_embed,
     team_view_stats
 )
 from custom_tools.custom_translations import TRANSL
@@ -43,9 +48,19 @@ LANG = 0
 KILLRATE_THRESHOLD = 1.4
 
 # Dedicated Discord's channel webhook
-DISCORD_WEBHOOK = (
-    "https://discord.com/api/webhooks/..."
-)
+# ServerNumber, Webhook, Enabled
+SERVER_CONFIG = [
+    ["https://discord.com/api/webhooks/...", True],  # Server 1
+    ["https://discord.com/api/webhooks/...", False],  # Server 2
+    ["https://discord.com/api/webhooks/...", False],  # Server 3
+    ["https://discord.com/api/webhooks/...", False],  # Server 4
+    ["https://discord.com/api/webhooks/...", False],  # Server 5
+    ["https://discord.com/api/webhooks/...", False],  # Server 6
+    ["https://discord.com/api/webhooks/...", False],  # Server 7
+    ["https://discord.com/api/webhooks/...", False],  # Server 8
+    ["https://discord.com/api/webhooks/...", False],  # Server 9
+    ["https://discord.com/api/webhooks/...", False]  # Server 10
+]
 
 # You won't get Discord entries for the players having this flag(s) set on profile
 # (they'll still be noted in logs)
@@ -66,7 +81,7 @@ WHITELIST_ARTILLERY = True
 # Recommended : as the stats are to be gathered for all the players,
 #               requiring a big amount of data from the game server,
 #               you may encounter slowdowns if done too frequently.
-# Recommended : not less than 300 secs (5 mins)
+# Recommended : not less than 180 secs (3 mins)
 # Default : 300
 WATCH_INTERVAL_SECS = 300
 
@@ -114,7 +129,9 @@ def watch_killrate(
         exact_action=True  # Default : False
     )
     match_start_timestamp = logs_match_start["logs"][0]["timestamp_ms"] / 1000
-    mins_since_match_start = (datetime.now() - datetime.fromtimestamp(match_start_timestamp)).total_seconds() / 60
+    mins_since_match_start = (
+        datetime.now() - datetime.fromtimestamp(match_start_timestamp)
+    ).total_seconds() / 60
 
     # Test the infantry players (armor won't be tested)
     if mins_since_match_start > 2:  # Avoids inconsistent scores at the beginning of the game
@@ -127,12 +144,16 @@ def watch_killrate(
                 continue  # Avoids inconsistent scores
 
             # Calculate killrate
-            kills_per_minute = round((player["kills"] / min(mins_since_match_start, mins_since_connected)), 2)
+            kills_per_minute = round(
+                (player["kills"] / min(mins_since_match_start, mins_since_connected)), 2
+            )
 
             if kills_per_minute > KILLRATE_THRESHOLD:
 
                 # latest kills weapons (since last watch iteration)
-                time_now_minus_interval = datetime.now(timezone.utc) - timedelta(seconds=WATCH_INTERVAL_SECS)
+                time_now_minus_interval = (
+                    datetime.now(timezone.utc) - timedelta(seconds=WATCH_INTERVAL_SECS)
+                )
                 time_now_minus_interval_int = int(time_now_minus_interval.timestamp())
                 logs = get_recent_logs(
                     # start=0,  # Default : 0
@@ -146,22 +167,27 @@ def watch_killrate(
                 )
                 weapons = []
                 for log in logs["logs"]:
-                    if (log["player_name_1"] == player["name"] and not log["weapon"] in weapons):
+                    if (
+                        log["player_name_1"] == player["name"]
+                        and not log["weapon"] in weapons
+                    ):
                         weapons.append(log["weapon"])
 
                 # Log (whitelisted flag on player's profile)
                 whitelist_flag_present = False
                 try:
                     profile = get_player_profile(player["player_id"], 0)
-                    for f in WHITELIST_FLAGS:
-                        if player_has_flag(profile, f):
+                    for flag in WHITELIST_FLAGS:
+                        if player_has_flag(profile, flag):
                             whitelist_flag_present = True
                 except :
-                    logger.warning("Unable to check player profile")
+                    logger.warning("Unable to check player profile for flags")
 
                 if whitelist_flag_present:
                     logger.info(
-                        "(whitelist flag) '%s' - %s/%s/%s - Level : %s - %s kills in %s minutes (%s kill/min). Last used weapon(s) : %s",
+                        "(whitelist flag) '%s' - %s/%s/%s "
+                        "- Level : %s - %s kills in %s minutes (%s kill/min). "
+                        "Last used weapon(s) : %s",
                         player["name"],
                         TRANSL[player["team"]][LANG],
                         player["unit_name"],
@@ -178,7 +204,9 @@ def watch_killrate(
                 if WHITELIST_ARTILLERY:
                     if any(weapon in weapons for weapon in WEAPONS_ARTILLERY):
                         logger.info(
-                            "(whitelisted - artillery) '%s' - %s/%s/%s - Level : %s - %s kills in %s minutes (%s kill/min). Last used weapon(s) : %s",
+                            "(whitelisted - artillery) '%s' - %s/%s/%s "
+                            "- Level : %s - %s kills in %s minutes (%s kill/min). "
+                            "Last used weapon(s) : %s",
                             player["name"],
                             TRANSL[player["team"]][LANG],
                             player["unit_name"],
@@ -193,7 +221,9 @@ def watch_killrate(
 
                 # Log (non-whitelisted player)
                 logger.info(
-                    "'%s' - %s/%s/%s - Level : %s - %s kills in %s minutes (%s kill/min). Last used weapon(s) : %s",
+                    "'%s' - %s/%s/%s "
+                    "- Level : %s - %s kills in %s minutes (%s kill/min). "
+                    "Last used weapon(s) : %s",
                     player["name"],
                     TRANSL[player["team"]][LANG],
                     player["unit_name"],
@@ -208,29 +238,48 @@ def watch_killrate(
                 # TODO : Flag the player
 
                 # Discord
+                # Check if enabled
+                server_number = int(get_server_number())
+                if not SERVER_CONFIG[server_number - 1][1]:
+                    return
+                discord_webhook = SERVER_CONFIG[server_number - 1][0]
+
                 if player["team"] == "axis":
                     team_symbol = "🟥"
                 elif player["team"] == "allies":
                     team_symbol = "🟦"
 
                 embed_desc_txt = (
-                    f"{team_symbol} {TRANSL[player['team']][LANG]} / {player['unit_name']} / {TRANSL[player['role']][LANG]}\n"
-                    f"{player['kills']} kills / {round(min(mins_since_match_start, mins_since_connected), 2)} min. (**{kills_per_minute} kill/min**)\n"
+                    f"{team_symbol} {TRANSL[player['team']][LANG]} "
+                    f"/ {player['unit_name']} "
+                    f"/ {TRANSL[player['role']][LANG]}\n"
+                    f"{player['kills']} kills "
+                    f"/ {round(min(mins_since_match_start, mins_since_connected), 2)} min. "
+                    f"(**{kills_per_minute} kill/min**)\n"
                     f"**{TRANSL['level'][LANG]} :** {player['level']}\n"
                     f"**{TRANSL['lastusedweapons'][LANG]} :\n** {', '.join(weapons)}"
                 )
 
-                embed_color = green_to_red(kills_per_minute, min_value=KILLRATE_THRESHOLD, max_value=2)
-
-                send_discord_embed(
-                    BOT_NAME,
-                    embed_title=player["name"],
-                    embed_title_url=get_external_profile_url(player["player_id"], player["name"]),
-                    steam_avatar_url=get_avatar_url(player["player_id"]),
-                    embed_desc_txt=embed_desc_txt,
-                    embed_color=int(embed_color, base=16),
-                    discord_webhook=DISCORD_WEBHOOK
+                embed_color = green_to_red(
+                    kills_per_minute, min_value=KILLRATE_THRESHOLD, max_value=2
                 )
+
+                # Create and send Discord embed
+                webhook = discord.SyncWebhook.from_url(discord_webhook)
+                embed = discord.Embed(
+                    title=player["name"],
+                    url=get_external_profile_url(player["player_id"], player["name"]),
+                    description=embed_desc_txt,
+                    color=embed_color
+                )
+                embed.set_author(
+                    name=BOT_NAME,
+                    url=DISCORD_EMBED_AUTHOR_URL,
+                    icon_url=DISCORD_EMBED_AUTHOR_ICON_URL
+                )
+                embed.set_thumbnail(url=get_avatar_url(player["player_id"]),)
+
+                discord_embed_send(embed, webhook)
 
 
 # Launching - initial pause : wait to be sure the CRCON is fully started
