@@ -174,7 +174,6 @@ def watch_killrate(
                     )
                     continue
 
-
                 # Log (whitelisted artillery player)
                 if WHITELIST_ARTILLERY:
                     if any(weapon in weapons for weapon in WEAPONS_ARTILLERY):
@@ -205,6 +204,8 @@ def watch_killrate(
                     kills_per_minute,
                     ', '.join(weapons)
                 )
+
+                # TODO : Flag the player
 
                 # Discord
                 if player["team"] == "axis":
