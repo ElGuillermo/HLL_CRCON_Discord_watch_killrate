@@ -18,7 +18,7 @@ A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool) that wat
   command=python -m custom_tools.watch_killrate
   environment=LOGGING_FILENAME=watch_killrate_%(ENV_SERVER_NUMBER)s.log
   startretries=100
-  startsecs=120
+  startsecs=10
   autostart=true
   autorestart=true
   ```
