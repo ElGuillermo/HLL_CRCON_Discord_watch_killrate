@@ -8,10 +8,10 @@ A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool) that wat
 - Copy `restart.sh` in CRCON's root (`/root/hll_rcon_tool/`) ;
 - Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`) ;
 - Copy these files in the newly created `/root/hll_rcon_tool/custom_tools` :
-  - `custom_common.py` ;
-  - `custom_translations.py` ;
-  - `watch_killrate.py` ;
-  - `watch_killrate_config.py`.
+  - `custom_common.py`
+  - `custom_translations.py`
+  - `watch_killrate.py`
+  - `watch_killrate_config.py`
 - Edit `/root/hll_rcon_tool/config/supervisord.conf` to add this bot section : 
   ```conf
   [program:watch_killrate]
