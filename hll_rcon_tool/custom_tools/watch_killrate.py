@@ -1,9 +1,8 @@
 """
-watch_killrate.py
+watch_killrate
 
 A plugin for HLL CRCON (https://github.com/MarechJ/hll_rcon_tool)
 that watches and report players who get "too much" kills per minute.
-(some strings are hardcoded in french, feel free to adapt them to your language)
 
 Source : https://github.com/ElGuillermo
 
@@ -19,7 +18,7 @@ from rcon.rcon import Rcon
 from rcon.player_history import get_player_profile, player_has_flag
 from rcon.settings import SERVER_INFO
 from rcon.utils import get_server_number
-from custom_tools.custom_common import (
+from custom_tools.common_functions import (
     DISCORD_EMBED_AUTHOR_URL,
     DISCORD_EMBED_AUTHOR_ICON_URL,
     WEAPONS_ARTILLERY,
@@ -29,68 +28,8 @@ from custom_tools.custom_common import (
     green_to_red,
     team_view_stats
 )
-from custom_tools.custom_translations import TRANSL
-
-
-# Configuration (you must review/change these !)
-# -----------------------------------------------------------------------------
-
-# Discord embeds strings translations
-# Available : 0 for english, 1 for french, 2 for german
-LANG = 0
-
-# Send a Discord message if the player gets more kills/minute than this number
-# 1.0 = "good" (legit) players
-# 1.5 = artillery and machinegun players
-# 1.5+ = competitive players
-# 2.0+ = consider this is almost a cheat proof
-# Default : 1.4
-KILLRATE_THRESHOLD = 1.4
-
-# Dedicated Discord's channel webhook
-# ServerNumber, Webhook, Enabled
-SERVER_CONFIG = [
-    ["https://discord.com/api/webhooks/...", True],  # Server 1
-    ["https://discord.com/api/webhooks/...", False],  # Server 2
-    ["https://discord.com/api/webhooks/...", False],  # Server 3
-    ["https://discord.com/api/webhooks/...", False],  # Server 4
-    ["https://discord.com/api/webhooks/...", False],  # Server 5
-    ["https://discord.com/api/webhooks/...", False],  # Server 6
-    ["https://discord.com/api/webhooks/...", False],  # Server 7
-    ["https://discord.com/api/webhooks/...", False],  # Server 8
-    ["https://discord.com/api/webhooks/...", False],  # Server 9
-    ["https://discord.com/api/webhooks/...", False]  # Server 10
-]
-
-# You won't get Discord entries for the players having this flag(s) set on profile
-# (they'll still be noted in logs)
-# Use https://emojipedia.org/ to find the emoji that suits your needs
-WHITELIST_FLAGS = ["🔕"]
-
-# Artillery players can get a lot of kills in no time
-# Set this to 'True' to disable warnings on these
-# (they'll still be noted in logs)
-# Default : True
-WHITELIST_ARTILLERY = True
-
-
-# Miscellaneous (you don't have to change these)
-# ----------------------------------------------
-
-# The interval between watch turns (in seconds)
-# Recommended : as the stats are to be gathered for all the players,
-#               requiring a big amount of data from the game server,
-#               you may encounter slowdowns if done too frequently.
-# Recommended : not less than 180 secs (3 mins)
-# Default : 300
-WATCH_INTERVAL_SECS = 300
-
-# Bot name that will be displayed in CRCON "audit logs" and Discord embeds
-BOT_NAME = "CRCON_watch_killrate"
-
-
-# (End of configuration)
-# -----------------------------------------------------------------------------
+from custom_tools.common_translations import TRANSL
+from custom_tools.watch_killrate_config import *
 
 
 def watch_killrate_loop():
