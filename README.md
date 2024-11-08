@@ -6,9 +6,10 @@ A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool) that wat
 
 ## Install
 - Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`) ;
-- Copy `watch_killrate.py` in `/root/hll_rcon_tool/custom_tools/` ;
 - Copy `custom_common.py` in `/root/hll_rcon_tool/custom_tools/` ;
 - Copy `custom_translations.py` in `/root/hll_rcon_tool/custom_tools/` ;
+- Copy `watch_killrate.py` in `/root/hll_rcon_tool/custom_tools/` ;
+- Copy `watch_killrate_config.py` in `/root/hll_rcon_tool/custom_tools/` ;
 - Copy `restart.sh` in CRCON's root (`/root/hll_rcon_tool/`) ;
 - Edit `/root/hll_rcon_tool/config/supervisord.conf` to add this bot section : 
   ```conf
@@ -22,7 +23,7 @@ A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool) that wat
   ```
 
 ## Config
-- Edit `/root/hll_rcon_tool/custom_tools/watch_killrate.py` and set the parameters to your needs ;
+- Edit `/root/hll_rcon_tool/custom_tools/watch_killrate_config.py` and set the parameters to your needs ;
 - Restart CRCON :
   ```shell
   cd /root/hll_rcon_tool
@@ -31,9 +32,10 @@ A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool) that wat
 
 ## Limitations
 ⚠️ Any change to these files :
-- `/root/hll_rcon_tool/custom_tools/watch_killrate.py` ;
-- `/root/hll_rcon_tool/custom_tools/custom_common.py` ;
+- `/root/hll_rcon_tool/custom_tools/custom_common.py` ;  
 - `/root/hll_rcon_tool/custom_tools/custom_translations.py` ;  
+- `/root/hll_rcon_tool/custom_tools/watch_killrate.py` ;  
+- `/root/hll_rcon_tool/custom_tools/watch_killrate_config.py` ;  
 ...will need a CRCON restart (using `restart.sh` script) to be taken in account.
 
 ⚠️ This plugin requires a modification of the `/root/hll_rcon_tool/config/supervisord.conf` file, which originates from the official CRCON depot.  
