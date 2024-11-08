@@ -5,8 +5,8 @@ A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool) that wat
 ![image](https://github.com/user-attachments/assets/9733fc2c-e50b-43c8-89d8-404098563f45)
 
 ## Install
-- Copy `restart.sh` in CRCON's root (`/root/hll_rcon_tool/`) ;
-- Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`) ;
+- Copy `restart.sh` in CRCON's root (`/root/hll_rcon_tool/`)
+- Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`)
 - Copy these files into the newly created `/root/hll_rcon_tool/custom_tools/` folder :
   - `common_functions.py`
   - `common_translations.py`
