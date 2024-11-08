@@ -32,7 +32,7 @@ A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool) that wat
   ```
 
 ## Limitations
-⚠️ Any change to these files require a CRCON restart (using the `restart.sh` script) to be taken in account.
+⚠️ Any change to these files requires a CRCON rebuild and restart (using the `restart.sh` script) to be taken in account.
 - `/root/hll_rcon_tool/custom_tools/custom_common.py` ;  
 - `/root/hll_rcon_tool/custom_tools/custom_translations.py` ;  
 - `/root/hll_rcon_tool/custom_tools/watch_killrate.py` ;  
