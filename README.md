@@ -7,7 +7,7 @@ A plugin for HLL CRCON (see : https://github.com/MarechJ/hll_rcon_tool) that wat
 ## Install
 - Copy `restart.sh` in CRCON's root (`/root/hll_rcon_tool/`) ;
 - Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`) ;
-- Copy these files in `/root/hll_rcon_tool/custom_tools` :
+- Copy these files in the newly created `/root/hll_rcon_tool/custom_tools` :
   - `custom_common.py` ;
   - `custom_translations.py` ;
   - `watch_killrate.py` ;
