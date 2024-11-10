@@ -176,11 +176,13 @@ def watch_killrate(
 
                 # TODO : Flag the player
 
-                # Discord
+                # Prepare Discord embed
                 server_number = int(get_server_number())
                 if not SERVER_CONFIG[server_number - 1][1]:
                     return
                 discord_webhook = SERVER_CONFIG[server_number - 1][0]
+
+                embed_url = get_external_profile_url(player["player_id"], player["name"])
 
                 if player["team"] == "axis":
                     team_symbol = "🟥"
@@ -203,7 +205,6 @@ def watch_killrate(
 
                 # Create and send Discord embed
                 webhook = discord.SyncWebhook.from_url(discord_webhook)
-                embed_url = get_external_profile_url(player["player_id"], player["name"])
                 embed = discord.Embed(
                     title=player["name"],
                     url=embed_url,
@@ -216,10 +217,8 @@ def watch_killrate(
                     icon_url=DISCORD_EMBED_AUTHOR_ICON_URL
                 )
                 embed.set_thumbnail(url=get_avatar_url(player["player_id"]))
-                try:
-                    discord_embed_send(embed, webhook)
-                except Exception as error:
-                    logger.info("error = %s", error)
+
+                discord_embed_send(embed, webhook)
 
 
 # Launching - initial pause : wait to be sure the CRCON is fully started
