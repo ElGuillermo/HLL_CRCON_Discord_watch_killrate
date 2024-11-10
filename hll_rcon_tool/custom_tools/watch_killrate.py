@@ -188,6 +188,8 @@ def watch_killrate(
                 elif player["team"] == "allies":
                     team_symbol = "🟦"
 
+                embed_title = player["name"]
+                embed_url = get_external_profile_url(player["player_id"], player["name"])
                 embed_desc_txt = (
                     f"{team_symbol} {TRANSL[player['team']][LANG]} "
                     f"/ {player['unit_name']} "
@@ -198,16 +200,16 @@ def watch_killrate(
                     f"**{TRANSL['level'][LANG]} :** {player['level']}\n"
                     f"**{TRANSL['lastusedweapons'][LANG]} :\n** {', '.join(weapons)}"
                 )
-
                 embed_color = green_to_red(
                     kills_per_minute, min_value=KILLRATE_THRESHOLD, max_value=2
                 )
+                thumbnail_url = get_avatar_url(player["player_id"])
 
                 # Create and send Discord embed
                 webhook = discord.SyncWebhook.from_url(discord_webhook)
                 embed = discord.Embed(
-                    title=player["name"],
-                    url=get_external_profile_url(player["player_id"], player["name"]),
+                    title=embed_title,
+                    url=embed_url,
                     description=embed_desc_txt,
                     color=embed_color
                 )
@@ -216,7 +218,7 @@ def watch_killrate(
                     url=DISCORD_EMBED_AUTHOR_URL,
                     icon_url=DISCORD_EMBED_AUTHOR_ICON_URL
                 )
-                embed.set_thumbnail(url=get_avatar_url(player["player_id"]),)
+                embed.set_thumbnail(url=thumbnail_url)
 
                 discord_embed_send(embed, webhook)
 
