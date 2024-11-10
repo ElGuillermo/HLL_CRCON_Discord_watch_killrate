@@ -55,9 +55,9 @@ WHITELIST_ARTILLERY = True
 # Recommended : as the stats are to be gathered for all the players,
 #               requiring a big amount of data from the game server,
 #               you may encounter slowdowns if done too frequently.
-# Recommended : not less than 180 secs (3 mins)
-# Default : 300
-WATCH_INTERVAL_SECS = 300
+# Recommended : not less than 120 secs (2 mins)
+# Default : 120
+WATCH_INTERVAL_SECS = 120
 
 # Bot name that will be displayed in CRCON "audit logs" and Discord embeds
 BOT_NAME = "CRCON_watch_killrate"
