@@ -177,7 +177,6 @@ def watch_killrate(
                 # TODO : Flag the player
 
                 # Discord
-                # Check if enabled
                 server_number = int(get_server_number())
                 if not SERVER_CONFIG[server_number - 1][1]:
                     return
@@ -187,9 +186,6 @@ def watch_killrate(
                     team_symbol = "🟥"
                 elif player["team"] == "allies":
                     team_symbol = "🟦"
-
-                embed_title = player["name"]
-                embed_url = get_external_profile_url(player["player_id"], player["name"])
                 embed_desc_txt = (
                     f"{team_symbol} {TRANSL[player['team']][LANG]} "
                     f"/ {player['unit_name']} "
@@ -198,29 +194,32 @@ def watch_killrate(
                     f"/ {round(min(mins_since_match_start, mins_since_connected), 2)} min. "
                     f"(**{kills_per_minute} kill/min**)\n"
                     f"**{TRANSL['level'][LANG]} :** {player['level']}\n"
-                    f"**{TRANSL['lastusedweapons'][LANG]} :\n** {', '.join(weapons)}"
+                    f"**{TRANSL['lastusedweapons'][LANG]} :**\n {', '.join(weapons)}"
                 )
+
                 embed_color = green_to_red(
                     kills_per_minute, min_value=KILLRATE_THRESHOLD, max_value=2
                 )
-                thumbnail_url = get_avatar_url(player["player_id"])
 
                 # Create and send Discord embed
                 webhook = discord.SyncWebhook.from_url(discord_webhook)
+                embed_url = get_external_profile_url(player["player_id"], player["name"])
                 embed = discord.Embed(
-                    title=embed_title,
+                    title=player["name"],
                     url=embed_url,
                     description=embed_desc_txt,
-                    color=embed_color
+                    color=int(embed_color, base=16)
                 )
                 embed.set_author(
                     name=BOT_NAME,
                     url=DISCORD_EMBED_AUTHOR_URL,
                     icon_url=DISCORD_EMBED_AUTHOR_ICON_URL
                 )
-                embed.set_thumbnail(url=thumbnail_url)
-
-                discord_embed_send(embed, webhook)
+                embed.set_thumbnail(url=get_avatar_url(player["player_id"]))
+                try:
+                    discord_embed_send(embed, webhook)
+                except Exception as error:
+                    logger.info("error = %s", error)
 
 
 # Launching - initial pause : wait to be sure the CRCON is fully started
