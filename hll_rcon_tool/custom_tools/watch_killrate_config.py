@@ -18,8 +18,8 @@ LANG = 0
 # 1.5 = artillery and machinegun players
 # 1.5+ = competitive players
 # 2.0+ = consider this is almost a cheat proof
-# Default : 1.4
-KILLRATE_THRESHOLD = 1.4
+# Default : 1.75
+KILLRATE_THRESHOLD = 1.75
 
 # Dedicated Discord's channel webhook
 # ServerNumber, Webhook, Enabled
