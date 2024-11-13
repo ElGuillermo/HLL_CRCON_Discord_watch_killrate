@@ -136,7 +136,7 @@ def watch_killrate(
                 f"/{TRANSL[player['role']][LANG]}"
                 f" - Level : {player['level']}"
                 f" - {player['kills']} kills in"
-                f" {round(mins_from_offdef), 2)} minutes"
+                f" {round(mins_from_offdef, 2)} minutes"
                 f" ({round(kills_per_minute, 2)} kill/min)."
                 f" {TRANSL['lastusedweapons'][LANG]} : {', '.join(weapons)}",
             )
