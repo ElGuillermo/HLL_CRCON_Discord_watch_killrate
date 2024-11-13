@@ -40,9 +40,9 @@ def watch_killrate_loop():
     rcon = Rcon(SERVER_INFO)
     (
         _,
+        _,  # all_players
         _,
-        _,
-        all_infantry_players,
+        all_infantry_players,  # Armor won't be tested
         _,
         _,
         _
@@ -51,7 +51,10 @@ def watch_killrate_loop():
     if len(all_infantry_players) > 1:
         watch_killrate(all_infantry_players)
     else:
-        logger.info("Less than 2 players ingame, waiting for %s mins", WATCH_INTERVAL_SECS / 60)
+        logger.info(
+            "Less than 2 players ingame, waiting for %s mins",
+            round((WATCH_INTERVAL_SECS / 60), 2)
+        )
 
 
 def watch_killrate(
@@ -62,163 +65,140 @@ def watch_killrate(
     Send a report to Discord if found
     """
     # Get elapsed match time
-    mins_since_match_start = 1  # Default value
+    mins_since_match_start = 1
     logs_match_start = get_recent_logs(
         action_filter=["MATCH START"],
-        exact_action=True  # Default : False
+        exact_action=True
     )
     match_start_timestamp = logs_match_start["logs"][0]["timestamp_ms"] / 1000
     mins_since_match_start = (
         datetime.now() - datetime.fromtimestamp(match_start_timestamp)
     ).total_seconds() / 60
 
-    # Test the infantry players (armor won't be tested)
-    if mins_since_match_start > 2:  # Avoids inconsistent scores at the beginning of the game
+    # Avoids weird data returned at the beginning of the game
+    if mins_since_match_start < 2:
+        return
 
-        for player in watched_players:
+    # Test the players
+    for player in watched_players:
 
-            # Don't test player if (s)he has connected less than WATCH_INTERVAL_SECS ago
-            mins_since_connected = player["profile"]["current_playtime_seconds"] / 60
-            if mins_since_connected < (WATCH_INTERVAL_SECS / 60) :
-                continue  # Avoids inconsistent scores
+        mins_since_connected = int(player["profile"]["current_playtime_seconds"]) / 60
+        mins_from_offdef = (int(player["offense"]) + int(player["defense"])) / 20
 
-            # Calculate killrate
-            kills_per_minute = round(
-                (player["kills"] / min(mins_since_match_start, mins_since_connected)), 2
+        # Don't test player : connected less than WATCH_INTERVAL_SECS ago
+        if mins_since_connected < (WATCH_INTERVAL_SECS / 60) :
+            continue
+
+        # Don't test player : no kills yet
+        if int(player["kills"]) == 0:
+            continue
+
+        # Don't test player : not been on map for at least a minute
+        if mins_from_offdef == 0:
+            continue
+
+        kills_per_minute = int(player["kills"]) / mins_from_offdef
+
+        if kills_per_minute > KILLRATE_THRESHOLD:
+
+            # latest kills weapons (since last watch iteration)
+            time_now_minus_interval = (
+                datetime.now(timezone.utc) - timedelta(seconds=WATCH_INTERVAL_SECS)
+            )
+            logs = get_recent_logs(
+                end=500,
+                player_search=player["name"],
+                action_filter=["KILL"],
+                min_timestamp=int(time_now_minus_interval.timestamp()),
+                exact_player_match=True,
+                exact_action=True
+            )
+            weapons = []
+            for log in logs["logs"]:
+                if log["player_name_1"] == player["name"] and not log["weapon"] in weapons:
+                    weapons.append(log["weapon"])
+
+            # Test whitelisted flag presence on player's profile
+            whitelist_flag_present = False
+            try:
+                profile = get_player_profile(player["player_id"], 0)
+                for flag in WHITELIST_FLAGS:
+                    if player_has_flag(profile, flag):
+                        whitelist_flag_present = True
+            except :
+                logger.warning("Unable to check player profile for flags")
+
+            # Logs
+            log_txt = (
+                f"'{player['name']}'"
+                f" - {TRANSL[player['team']][LANG]}"
+                f"/{player['unit_name']}"
+                f"/{TRANSL[player['role']][LANG]}"
+                f" - Level : {player['level']}"
+                f" - {player['kills']} kills in"
+                f" {round(min(mins_since_match_start, mins_since_connected), 2)} minutes"
+                f" ({round(kills_per_minute, 2)} kill/min)."
+                f" {TRANSL['lastusedweapons'][LANG]} : {', '.join(weapons)}",
             )
 
-            if kills_per_minute > KILLRATE_THRESHOLD:
+            # Log (player has a whitelist flag)
+            if whitelist_flag_present:
+                logger.info(f"(whitelisted - flag) {log_txt}")
+                continue
 
-                # latest kills weapons (since last watch iteration)
-                time_now_minus_interval = (
-                    datetime.now(timezone.utc) - timedelta(seconds=WATCH_INTERVAL_SECS)
-                )
-                time_now_minus_interval_int = int(time_now_minus_interval.timestamp())
-                logs = get_recent_logs(
-                    # start=0,  # Default : 0
-                    end=500,  # Default : 100000
-                    player_search=player["name"],
-                    action_filter=["KILL"],
-                    min_timestamp=time_now_minus_interval_int,
-                    exact_player_match=True,  # Default : False
-                    exact_action=True,  # Default : False
-                    # inclusive_filter=True,  # Default : True
-                )
-                weapons = []
-                for log in logs["logs"]:
-                    if (
-                        log["player_name_1"] == player["name"]
-                        and not log["weapon"] in weapons
-                    ):
-                        weapons.append(log["weapon"])
-
-                # Log (whitelisted flag on player's profile)
-                whitelist_flag_present = False
-                try:
-                    profile = get_player_profile(player["player_id"], 0)
-                    for flag in WHITELIST_FLAGS:
-                        if player_has_flag(profile, flag):
-                            whitelist_flag_present = True
-                except :
-                    logger.warning("Unable to check player profile for flags")
-
-                if whitelist_flag_present:
-                    logger.info(
-                        "(whitelist flag) '%s' - %s/%s/%s "
-                        "- Level : %s - %s kills in %s minutes (%s kill/min). "
-                        "Last used weapon(s) : %s",
-                        player["name"],
-                        TRANSL[player["team"]][LANG],
-                        player["unit_name"],
-                        TRANSL[player["role"]][LANG],
-                        player["level"],
-                        player["kills"],
-                        round(min(mins_since_match_start, mins_since_connected), 2),
-                        kills_per_minute,
-                        ', '.join(weapons)
-                    )
+            # Log (whitelisted artillery player)
+            if WHITELIST_ARTILLERY:
+                if any(weapon in weapons for weapon in WEAPONS_ARTILLERY):
+                    logger.info(f"(whitelisted - artillery) {log_txt}")
                     continue
 
-                # Log (whitelisted artillery player)
-                if WHITELIST_ARTILLERY:
-                    if any(weapon in weapons for weapon in WEAPONS_ARTILLERY):
-                        logger.info(
-                            "(whitelisted - artillery) '%s' - %s/%s/%s "
-                            "- Level : %s - %s kills in %s minutes (%s kill/min). "
-                            "Last used weapon(s) : %s",
-                            player["name"],
-                            TRANSL[player["team"]][LANG],
-                            player["unit_name"],
-                            TRANSL[player["role"]][LANG],
-                            player["level"],
-                            player["kills"],
-                            round(min(mins_since_match_start, mins_since_connected), 2),
-                            kills_per_minute,
-                            ', '.join(weapons)
-                        )
-                        continue
+            # Log (non-whitelisted player)
+            logger.info(f"{log_txt}")
 
-                # Log (non-whitelisted player)
-                logger.info(
-                    "'%s' - %s/%s/%s "
-                    "- Level : %s - %s kills in %s minutes (%s kill/min). "
-                    "Last used weapon(s) : %s",
-                    player["name"],
-                    TRANSL[player["team"]][LANG],
-                    player["unit_name"],
-                    TRANSL[player["role"]][LANG],
-                    player["level"],
-                    player["kills"],
-                    round(min(mins_since_match_start, mins_since_connected), 2),
-                    kills_per_minute,
-                    ', '.join(weapons)
-                )
+            # TODO : Flag the player
 
-                # TODO : Flag the player
+            # Prepare Discord embed
+            if player["team"] == "axis":
+                team_symbol = "🟥"
+            elif player["team"] == "allies":
+                team_symbol = "🟦"
+            embed_desc_txt = (
+                f"{team_symbol} {TRANSL[player['team']][LANG]} "
+                f"/ {player['unit_name']} "
+                f"/ {TRANSL[player['role']][LANG]}\n"
+                f"{player['kills']} kills "
+                f"/ {round(min(mins_since_match_start, mins_since_connected), 2)} min. "
+                f"(**{round(kills_per_minute, 2)} kill/min**)\n"
+                f"**{TRANSL['level'][LANG]} :** {player['level']}\n"
+                f"**{TRANSL['lastusedweapons'][LANG]} :**\n {', '.join(weapons)}"
+            )
 
-                # Prepare Discord embed
-                server_number = int(get_server_number())
-                if not SERVER_CONFIG[server_number - 1][1]:
-                    return
-                discord_webhook = SERVER_CONFIG[server_number - 1][0]
+            embed_color = green_to_red(
+                kills_per_minute, min_value=KILLRATE_THRESHOLD, max_value=2
+            )
 
-                embed_url = get_external_profile_url(player["player_id"], player["name"])
+            # Create Discord embed
+            embed = discord.Embed(
+                title=player["name"],
+                url=get_external_profile_url(player["player_id"], player["name"]),
+                description=embed_desc_txt,
+                color=int(embed_color, base=16)
+            )
+            embed.set_author(
+                name=BOT_NAME,
+                url=DISCORD_EMBED_AUTHOR_URL,
+                icon_url=DISCORD_EMBED_AUTHOR_ICON_URL
+            )
+            embed.set_thumbnail(url=get_avatar_url(player["player_id"]))
 
-                if player["team"] == "axis":
-                    team_symbol = "🟥"
-                elif player["team"] == "allies":
-                    team_symbol = "🟦"
-                embed_desc_txt = (
-                    f"{team_symbol} {TRANSL[player['team']][LANG]} "
-                    f"/ {player['unit_name']} "
-                    f"/ {TRANSL[player['role']][LANG]}\n"
-                    f"{player['kills']} kills "
-                    f"/ {round(min(mins_since_match_start, mins_since_connected), 2)} min. "
-                    f"(**{kills_per_minute} kill/min**)\n"
-                    f"**{TRANSL['level'][LANG]} :** {player['level']}\n"
-                    f"**{TRANSL['lastusedweapons'][LANG]} :**\n {', '.join(weapons)}"
-                )
-
-                embed_color = green_to_red(
-                    kills_per_minute, min_value=KILLRATE_THRESHOLD, max_value=2
-                )
-
-                # Create and send Discord embed
-                webhook = discord.SyncWebhook.from_url(discord_webhook)
-                embed = discord.Embed(
-                    title=player["name"],
-                    url=embed_url,
-                    description=embed_desc_txt,
-                    color=int(embed_color, base=16)
-                )
-                embed.set_author(
-                    name=BOT_NAME,
-                    url=DISCORD_EMBED_AUTHOR_URL,
-                    icon_url=DISCORD_EMBED_AUTHOR_ICON_URL
-                )
-                embed.set_thumbnail(url=get_avatar_url(player["player_id"]))
-
-                discord_embed_send(embed, webhook)
+            # Send Discord embed
+            server_number = int(get_server_number())
+            if not SERVER_CONFIG[server_number - 1][1]:
+                logger.warning("server %s - Discord webhook is disabled", server_number)
+                return
+            discord_webhook = SERVER_CONFIG[server_number - 1][0]
+            webhook = discord.SyncWebhook.from_url(discord_webhook)
+            discord_embed_send(embed, webhook)
 
 
 # Launching - initial pause : wait to be sure the CRCON is fully started
