@@ -2,7 +2,7 @@
 watch_killrate
 
 A plugin for HLL CRCON (https://github.com/MarechJ/hll_rcon_tool)
-that watches and report players who get "too much" kills per minute.
+that watches and reports players who get "too much" kills per minute.
 
 Source : https://github.com/ElGuillermo
 
@@ -21,10 +21,13 @@ from rcon.utils import get_server_number
 from custom_tools.common_functions import (
     DISCORD_EMBED_AUTHOR_URL,
     DISCORD_EMBED_AUTHOR_ICON_URL,
+    WEAPONS_ARMOR,
     WEAPONS_ARTILLERY,
+    WEAPONS_MG,
     discord_embed_send,
     get_avatar_url,
     get_external_profile_url,
+    get_match_elapsed_secs,
     green_to_red,
     team_view_stats
 )
@@ -33,27 +36,14 @@ from custom_tools.watch_killrate_config import (
     BOT_NAME,
     KILLRATE_THRESHOLD,
     LANG,
+    MINIMUM_KILLS,
     SERVER_CONFIG,
     WATCH_INTERVAL_SECS,
+    WHITELIST_ARMOR,
     WHITELIST_ARTILLERY,
+    WHITELIST_MG,
     WHITELIST_FLAGS
 )
-
-
-def get_match_elapsed_secs():
-    """
-    Return the number of seconds since MATCH START
-    """
-    secs_since_match_start = 1
-    logs_match_start = get_recent_logs(
-        action_filter=["MATCH START"],
-        exact_action=True
-    )
-    match_start_timestamp = logs_match_start["logs"][0]["timestamp_ms"] / 1000
-    secs_since_match_start = (
-        datetime.now() - datetime.fromtimestamp(match_start_timestamp)
-    ).total_seconds()
-    return secs_since_match_start
 
 
 def watch_killrate_loop():
@@ -64,22 +54,21 @@ def watch_killrate_loop():
     rcon = Rcon(SERVER_INFO)
     (
         _,
-        _,  # all_players
+        all_players,  # all_players
         _,
-        all_infantry_players,  # Armor won't be tested
+        _,  # all_infantry_players
         _,
         _,
         _
     ) = team_view_stats(rcon)
 
-    if len(all_infantry_players) > 1:
-        watch_killrate(all_infantry_players)
+    if len(all_players) > 1:
+        watch_killrate(all_players)
     else:
         logger.info(
             "Less than 2 players ingame, waiting for %s mins",
             round((WATCH_INTERVAL_SECS / 60), 2)
         )
-
 
 def watch_killrate(
         watched_players: list
@@ -88,7 +77,6 @@ def watch_killrate(
     Find the players whose kills per minute is over threshold
     Send a report to Discord if found
     """
-
     # Avoids weird data returned at the beginning of the game
     if (get_match_elapsed_secs() / 60) < 2:
         logger.info(
@@ -106,11 +94,11 @@ def watch_killrate(
         if mins_on_map == 0:
             continue
 
-        # Don't test player : no kills yet
-        if int(player["kills"]) == 0:
+        # Don't test player : no(t enough) kills yet
+        if int(player["kills"]) < MINIMUM_KILLS or int(player["kills"]) == 0:
             continue
 
-        # Don't test player : connected less than WATCH_INTERVAL_SECS ago
+        # Don't test player : connected since less than WATCH_INTERVAL_SECS ago
         if int(player["profile"]["current_playtime_seconds"]) < WATCH_INTERVAL_SECS:
             continue
 
@@ -160,14 +148,32 @@ def watch_killrate(
                 logger.info("(whitelisted - flag) %s", log_txt)
                 continue
 
+            # Log (whitelisted armor player)
+            if WHITELIST_ARMOR:
+                if any(weapon in weapons for weapon in WEAPONS_ARMOR):
+                    logger.info("(whitelisted - armor) %s", log_txt)
+                    continue
+
             # Log (whitelisted artillery player)
             if WHITELIST_ARTILLERY:
                 if any(weapon in weapons for weapon in WEAPONS_ARTILLERY):
                     logger.info("(whitelisted - artillery) %s", log_txt)
                     continue
 
+            # Log (whitelisted MG player)
+            if WHITELIST_MG:
+                if any(weapon in weapons for weapon in WEAPONS_MG):
+                    logger.info("(whitelisted - MG) %s", log_txt)
+                    continue
+
             # Log (non-whitelisted player)
             logger.info(log_txt)
+
+            # Test Discord webhook
+            server_number = int(get_server_number())
+            if not SERVER_CONFIG[server_number - 1][1]:
+                logger.warning("server %s - Discord webhook is disabled", server_number)
+                return
 
             # Create Discord embed
             if player["team"] == "axis":
@@ -200,10 +206,6 @@ def watch_killrate(
             embed.set_thumbnail(url=get_avatar_url(player["player_id"]))
 
             # Send Discord embed
-            server_number = int(get_server_number())
-            if not SERVER_CONFIG[server_number - 1][1]:
-                logger.warning("server %s - Discord webhook is disabled", server_number)
-                return
             discord_webhook = SERVER_CONFIG[server_number - 1][0]
             webhook = discord.SyncWebhook.from_url(discord_webhook)
             discord_embed_send(embed, webhook)
