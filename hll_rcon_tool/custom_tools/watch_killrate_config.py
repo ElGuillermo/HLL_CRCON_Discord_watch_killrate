@@ -36,16 +36,23 @@ SERVER_CONFIG = [
     ["https://discord.com/api/webhooks/...", False]  # Server 10
 ]
 
+# Don't log/send Discord message if the player has less than X kills
+# Avoids to get any false alert on match start (2 kills in 1 min happens often)
+# Disable : 0
+# Default : 10
+MINIMUM_KILLS = 10
+
 # You won't get Discord entries for the players having this flag(s) set on profile
 # (they'll still be noted in logs)
 # Use https://emojipedia.org/ to find the emoji that suits your needs
 WHITELIST_FLAGS = ["🔕"]
 
-# Artillery players can get a lot of kills in no time
-# Set this to 'True' to disable warnings on these
+# Some players can get a lot of kills in no time
+# Set these to 'True' to disable warnings
 # (they'll still be noted in logs)
-# Default : True
+WHITELIST_ARMOR = True
 WHITELIST_ARTILLERY = True
+WHITELIST_MG = False
 
 
 # Miscellaneous (you don't have to change these)
@@ -56,8 +63,8 @@ WHITELIST_ARTILLERY = True
 #               requiring a big amount of data from the game server,
 #               you may encounter slowdowns if done too frequently.
 # Recommended : not less than 120 secs (2 mins)
-# Default : 120
-WATCH_INTERVAL_SECS = 120
+# Default : 180
+WATCH_INTERVAL_SECS = 180
 
 # Bot name that will be displayed in CRCON "audit logs" and Discord embeds
 BOT_NAME = "CRCON_watch_killrate"
