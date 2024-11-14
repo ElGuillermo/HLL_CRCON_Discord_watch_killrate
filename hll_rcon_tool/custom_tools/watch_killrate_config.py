@@ -37,7 +37,7 @@ SERVER_CONFIG = [
 ]
 
 # Don't log/send Discord message if the player has less than X kills
-# Avoids to get any false alert on match start (2 kills in 1 min happens often)
+# Avoids to get any false alert (2 kills in 1 min could easily happen if the player enters the map midgame)
 # Disable : 0
 # Default : 10
 MINIMUM_KILLS = 10
