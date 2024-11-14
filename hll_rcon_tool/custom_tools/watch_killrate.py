@@ -94,12 +94,12 @@ def watch_killrate(
         if mins_on_map == 0:
             continue
 
-        # Don't test player : no(t enough) kills yet
-        if int(player["kills"]) < MINIMUM_KILLS or int(player["kills"]) == 0:
-            continue
-
         # Don't test player : connected since less than WATCH_INTERVAL_SECS ago
         if int(player["profile"]["current_playtime_seconds"]) < WATCH_INTERVAL_SECS:
+            continue
+
+        # Don't test player : no(t enough) kills yet
+        if int(player["kills"]) == 0 or int(player["kills"]) < MINIMUM_KILLS:
             continue
 
         kills_per_minute = int(player["kills"]) / mins_on_map
