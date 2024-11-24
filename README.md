@@ -15,14 +15,16 @@ A plugin for Hell Let Loose (HLL) CRCON (see : https://github.com/MarechJ/hll_rc
 
 ## Install
 - Log into your CRCON host machine using SSH and enter these commands (one line at at time) :
-
-- Copy `restart.sh` in CRCON's root (`/root/hll_rcon_tool/`)
-- Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`)
-- Copy these files into the newly created `/root/hll_rcon_tool/custom_tools/` folder :
-  - `common_functions.py`
-  - `common_translations.py`
-  - `watch_killrate.py`
-  - `watch_killrate_config.py`
+```shell
+cd /root/hll_rcon_tool
+wget https://raw.githubusercontent.com/ElGuillermo/HLL_RCON_restart/refs/heads/main/restart.sh
+mkdir custom_tools
+cd custom_tools
+wget https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_custom_common_functions.py/refs/heads/main/common_functions.py
+wget https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_custom_common_translations.py/refs/heads/main/common_translations.py
+wget https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_Discord_watch_killrate/refs/heads/main/hll_rcon_tool/custom_tools/watch_killrate.py
+wget https://raw.githubusercontent.com/ElGuillermo/HLL_CRCON_Discord_watch_killrate/refs/heads/main/hll_rcon_tool/custom_tools/watch_killrate_config.py
+```
 - Edit `/root/hll_rcon_tool/config/supervisord.conf` to add this bot section : 
   ```conf
   [program:watch_killrate]
