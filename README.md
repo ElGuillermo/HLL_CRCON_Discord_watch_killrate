@@ -35,7 +35,7 @@ A plugin for Hell Let Loose (HLL) CRCON (see : https://github.com/MarechJ/hll_rc
   ```
 
 ## Config
-- Edit `/root/hll_rcon_tool/custom_tools/watch_killrate_config.py` and set the parameters to fit your needs ;
+- Edit `/root/hll_rcon_tool/custom_tools/watch_killrate_config.py` and set the parameters to fit your needs.
 - Restart CRCON :
   ```shell
   cd /root/hll_rcon_tool
