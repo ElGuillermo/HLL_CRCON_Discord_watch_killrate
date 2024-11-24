@@ -3,6 +3,8 @@ A plugin for Hell Let Loose (HLL) CRCON (see : https://github.com/MarechJ/hll_rc
 
 ![image](https://github.com/user-attachments/assets/9733fc2c-e50b-43c8-89d8-404098563f45)
 
+## Install
+
 > [!NOTE]
 > The shell commands given below assume your CRCON is installed in `/root/hll_rcon_tool`.  
 > You may have installed your CRCON in a different folder.  
@@ -13,7 +15,6 @@ A plugin for Hell Let Loose (HLL) CRCON (see : https://github.com/MarechJ/hll_rc
 >   
 > If so, you'll have to adapt the commands below accordingly.
 
-## Install
 - Log into your CRCON host machine using SSH and enter these commands (one line at at time) :  
 
   First part  
