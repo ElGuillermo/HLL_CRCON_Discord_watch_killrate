@@ -18,32 +18,9 @@ from rcon.rcon import Rcon
 from rcon.player_history import get_player_profile, player_has_flag
 from rcon.settings import SERVER_INFO
 from rcon.utils import get_server_number
-from custom_tools.common_functions import (
-    DISCORD_EMBED_AUTHOR_URL,
-    DISCORD_EMBED_AUTHOR_ICON_URL,
-    WEAPONS_ARMOR,
-    WEAPONS_ARTILLERY,
-    WEAPONS_MG,
-    discord_embed_send,
-    get_avatar_url,
-    get_external_profile_url,
-    get_match_elapsed_secs,
-    green_to_red,
-    team_view_stats
-)
+import custom_tools.common_functions as common_functions
 from custom_tools.common_translations import TRANSL
-from custom_tools.watch_killrate_config import (
-    BOT_NAME,
-    KILLRATE_THRESHOLD,
-    LANG,
-    MINIMUM_KILLS,
-    SERVER_CONFIG,
-    WATCH_INTERVAL_SECS,
-    WHITELIST_ARMOR,
-    WHITELIST_ARTILLERY,
-    WHITELIST_MG,
-    WHITELIST_FLAGS
-)
+import custom_tools.watch_killrate_config as config
 
 
 def watch_killrate_loop():
@@ -60,14 +37,14 @@ def watch_killrate_loop():
         _,
         _,
         _
-    ) = team_view_stats(rcon)
+    ) = common_functions.team_view_stats(rcon)
 
     if len(all_players) > 1:
         watch_killrate(all_players)
     else:
         logger.info(
             "Less than 2 players ingame, waiting for %s mins",
-            round((WATCH_INTERVAL_SECS / 60), 2)
+            round((config.WATCH_INTERVAL_SECS / 60), 1)
         )
 
 def watch_killrate(
@@ -78,10 +55,10 @@ def watch_killrate(
     Send a report to Discord if found
     """
     # Avoids weird data returned at the beginning of the game
-    if (get_match_elapsed_secs() / 60) < 2:
+    if (common_functions.get_match_elapsed_secs() / 60) < 2:
         logger.info(
             "Match started less than 2 minutes ago, waiting for %s mins",
-            round((WATCH_INTERVAL_SECS / 60), 2)
+            round((config.WATCH_INTERVAL_SECS / 60), 1)
         )
         return
 
@@ -91,20 +68,20 @@ def watch_killrate(
         mins_on_map = (int(player["offense"]) + int(player["defense"])) / 20
 
         # Don't test player : not been on map for at least a minute
-        if mins_on_map == 0:
+        if mins_on_map < 1:
             continue
 
         # Don't test player : connected since less than WATCH_INTERVAL_SECS ago
-        if int(player["profile"]["current_playtime_seconds"]) < WATCH_INTERVAL_SECS:
+        if int(player["profile"]["current_playtime_seconds"]) < config.WATCH_INTERVAL_SECS:
             continue
 
         # Don't test player : no(t enough) kills yet
-        if int(player["kills"]) == 0 or int(player["kills"]) < MINIMUM_KILLS:
+        if int(player["kills"]) == 0 or int(player["kills"]) < config.MINIMUM_KILLS:
             continue
 
         kills_per_minute = int(player["kills"]) / mins_on_map
 
-        if kills_per_minute > KILLRATE_THRESHOLD:
+        if kills_per_minute > config.KILLRATE_THRESHOLD:
 
             # latest kills weapons (since last watch iteration)
             logs = get_recent_logs(
@@ -113,7 +90,7 @@ def watch_killrate(
                 action_filter=["KILL"],
                 min_timestamp=int(
                     (
-                        datetime.now(timezone.utc) - timedelta(seconds=WATCH_INTERVAL_SECS)
+                        datetime.now(timezone.utc) - timedelta(seconds=config.WATCH_INTERVAL_SECS)
                     ).timestamp()
                 ),
                 exact_player_match=True,
@@ -123,24 +100,26 @@ def watch_killrate(
             for log in logs["logs"]:
                 if log["player_name_1"] == player["name"] and not log["weapon"] in weapons:
                     weapons.append(log["weapon"])
+            if len(weapons) == 0:
+                weapons.append(TRANSL['noweaponfound'][config.LANG])
 
             # Test whitelisted flag
             whitelist_flag_present = False
-            for flag in WHITELIST_FLAGS:
+            for flag in config.WHITELIST_FLAGS:
                 if player_has_flag((get_player_profile(player["player_id"], 0)), flag):
                     whitelist_flag_present = True
 
             # Logs
             log_txt = (
                 f"'{player['name']}'"
-                f" - {TRANSL[player['team']][LANG]}"
+                f" - {TRANSL[player['team']][config.LANG]}"
                 f"/{player['unit_name']}"
-                f"/{TRANSL[player['role']][LANG]}"
+                f"/{TRANSL[player['role']][config.LANG]}"
                 f" - Level : {player['level']}"
                 f" - {player['kills']} kills in"
-                f" {round(mins_on_map, 2)} minutes"
-                f" ({round(kills_per_minute, 2)} kill/min)."
-                f" {TRANSL['lastusedweapons'][LANG]} : {', '.join(weapons)}",
+                f" {round(mins_on_map, 1)} minutes"
+                f" ({round(kills_per_minute, 1)} kill/min)."
+                f" {TRANSL['lastusedweapons'][config.LANG]} : {', '.join(weapons)}",
             )
 
             # Log (player has a whitelist flag)
@@ -149,20 +128,21 @@ def watch_killrate(
                 continue
 
             # Log (whitelisted armor player)
-            if WHITELIST_ARMOR:
-                if any(weapon in weapons for weapon in WEAPONS_ARMOR):
+            if config.WHITELIST_ARMOR:
+                # if any(weapon in weapons for weapon in WEAPONS_ARMOR):
+                if player["role"] in ["tankcommander", "crewman"]:
                     logger.info("(whitelisted - armor) %s", log_txt)
                     continue
 
             # Log (whitelisted artillery player)
-            if WHITELIST_ARTILLERY:
-                if any(weapon in weapons for weapon in WEAPONS_ARTILLERY):
+            if config.WHITELIST_ARTILLERY:
+                if any(weapon in weapons for weapon in common_functions.WEAPONS_ARTILLERY):
                     logger.info("(whitelisted - artillery) %s", log_txt)
                     continue
 
             # Log (whitelisted MG player)
-            if WHITELIST_MG:
-                if any(weapon in weapons for weapon in WEAPONS_MG):
+            if config.WHITELIST_MG:
+                if any(weapon in weapons for weapon in common_functions.WEAPONS_MG):
                     logger.info("(whitelisted - MG) %s", log_txt)
                     continue
 
@@ -171,7 +151,7 @@ def watch_killrate(
 
             # Test Discord webhook
             server_number = int(get_server_number())
-            if not SERVER_CONFIG[server_number - 1][1]:
+            if not config.SERVER_CONFIG[server_number - 1][1]:
                 logger.warning("server %s - Discord webhook is disabled", server_number)
                 return
 
@@ -182,33 +162,35 @@ def watch_killrate(
                 team_symbol = "🟦"
             embed = discord.Embed(
                 title=player["name"],
-                url=get_external_profile_url(player["player_id"], player["name"]),
+                url=common_functions.get_external_profile_url(player["player_id"], player["name"]),
                 description=(
-                    f"{team_symbol} {TRANSL[player['team']][LANG]} "
-                    f"/ {player['unit_name']} "
-                    f"/ {TRANSL[player['role']][LANG]}\n"
-                    f"{player['kills']} kills "
-                    f"/ {round(mins_on_map, 2)} min. "
-                    f"(**{round(kills_per_minute, 2)} kill/min**)\n"
-                    f"**{TRANSL['level'][LANG]} :** {player['level']}\n"
-                    f"**{TRANSL['lastusedweapons'][LANG]} :**\n {', '.join(weapons)}"
+                    f"{team_symbol} {TRANSL[player['team']][config.LANG]}"
+                    f" / {player['unit_name']}"
+                    f" / {TRANSL[player['role']][config.LANG]}\n"
+                    f"{player['kills']} kills"
+                    f" / {round(mins_on_map)} min."
+                    f" (**{round(kills_per_minute, 2)} kill/min**)\n"
+                    f"**{TRANSL['level'][config.LANG]} :** {player['level']}\n"
+                    f"**{TRANSL['lastusedweapons'][config.LANG]} :**\n {', '.join(weapons)}"
                 ),
                 color=int(
-                    green_to_red(kills_per_minute, min_value=KILLRATE_THRESHOLD, max_value=2),
+                    common_functions.green_to_red(
+                        kills_per_minute, min_value=config.KILLRATE_THRESHOLD, max_value=2
+                    ),
                     base=16
                 )
             )
             embed.set_author(
-                name=BOT_NAME,
-                url=DISCORD_EMBED_AUTHOR_URL,
-                icon_url=DISCORD_EMBED_AUTHOR_ICON_URL
+                name=config.BOT_NAME,
+                url=common_functions.DISCORD_EMBED_AUTHOR_URL,
+                icon_url=common_functions.DISCORD_EMBED_AUTHOR_ICON_URL
             )
-            embed.set_thumbnail(url=get_avatar_url(player["player_id"]))
+            embed.set_thumbnail(url=common_functions.get_avatar_url(player["player_id"]))
 
             # Send Discord embed
-            discord_webhook = SERVER_CONFIG[server_number - 1][0]
+            discord_webhook = config.SERVER_CONFIG[server_number - 1][0]
             webhook = discord.SyncWebhook.from_url(discord_webhook)
-            discord_embed_send(embed, webhook)
+            common_functions.discord_embed_send(embed, webhook)
 
 
 # Launching - initial pause : wait to be sure the CRCON is fully started
@@ -220,11 +202,11 @@ logger.info(
     "\n-------------------------------------------------------------------------------\n"
     "%s (started)\n"
     "-------------------------------------------------------------------------------",
-    BOT_NAME
+    config.BOT_NAME
 )
 
 # Launching and running (infinite loop)
 if __name__ == "__main__":
     while True:
         watch_killrate_loop()
-        sleep(WATCH_INTERVAL_SECS)
+        sleep(config.WATCH_INTERVAL_SECS)
