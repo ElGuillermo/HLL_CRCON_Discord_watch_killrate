@@ -1,10 +1,21 @@
 # HLL_CRCON_Discord_watch_killrate
-
 A plugin for Hell Let Loose (HLL) CRCON (see : https://github.com/MarechJ/hll_rcon_tool) that watches and report players who get "too much" kills per minute.
 
 ![image](https://github.com/user-attachments/assets/9733fc2c-e50b-43c8-89d8-404098563f45)
 
+> [!NOTE]
+> The shell commands given below assume your CRCON is installed in `/root/hll_rcon_tool`.  
+> You may have installed your CRCON in a different folder.  
+>   
+> Some Ubuntu Linux distributions disable the `root` user and `/root` folder by default.  
+> In these, your default user is `ubuntu`, using the `/home/ubuntu` folder.  
+> You should then find your CRCON in `/home/ubuntu/hll_rcon_tool`.  
+>   
+> If so, you'll have to adapt the commands below accordingly.
+
 ## Install
+- Log into your CRCON host machine using SSH and enter these commands (one line at at time) :
+
 - Copy `restart.sh` in CRCON's root (`/root/hll_rcon_tool/`)
 - Create a `custom_tools` folder in CRCON's root (`/root/hll_rcon_tool/`)
 - Copy these files into the newly created `/root/hll_rcon_tool/custom_tools/` folder :
@@ -24,7 +35,7 @@ A plugin for Hell Let Loose (HLL) CRCON (see : https://github.com/MarechJ/hll_rc
   ```
 
 ## Config
-- Edit `/root/hll_rcon_tool/custom_tools/watch_killrate_config.py` and set the parameters to your needs ;
+- Edit `/root/hll_rcon_tool/custom_tools/watch_killrate_config.py` and set the parameters to fit your needs ;
 - Restart CRCON :
   ```shell
   cd /root/hll_rcon_tool
