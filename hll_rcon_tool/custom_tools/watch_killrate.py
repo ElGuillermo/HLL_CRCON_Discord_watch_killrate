@@ -1,5 +1,5 @@
 """
-watch_killrate
+watch_killrate.py
 
 A plugin for HLL CRCON (https://github.com/MarechJ/hll_rcon_tool)
 that watches and reports players who get "too much" kills per minute.
@@ -122,7 +122,7 @@ def watch_killrate(
                 f" {TRANSL['lastusedweapons'][config.LANG]} : {', '.join(weapons)}",
             )
 
-            # Log (player has a whitelist flag)
+            # Log (whitelisted flag on CRCON profile)
             if whitelist_flag_present:
                 logger.info("(whitelisted - flag) %s", log_txt)
                 continue
@@ -144,6 +144,12 @@ def watch_killrate(
             if config.WHITELIST_MG:
                 if any(weapon in weapons for weapon in common_functions.WEAPONS_MG):
                     logger.info("(whitelisted - MG) %s", log_txt)
+                    continue
+
+            # Log (whitelisted no last weapon)
+            if config.WHITELIST_NOWEAPON:
+                if len(weapons) == 1 and weapons[0] == TRANSL['noweaponfound'][config.LANG]:
+                    logger.info("(whitelisted - No weapon) %s", log_txt)
                     continue
 
             # Log (non-whitelisted player)
@@ -175,7 +181,8 @@ def watch_killrate(
                 ),
                 color=int(
                     common_functions.green_to_red(
-                        kills_per_minute, min_value=config.KILLRATE_THRESHOLD, max_value=2
+                        kills_per_minute,
+                        min_value=config.KILLRATE_THRESHOLD
                     ),
                     base=16
                 )
