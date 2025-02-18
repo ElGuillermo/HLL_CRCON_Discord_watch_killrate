@@ -1,5 +1,5 @@
 > [!CAUTION]  
-> ⚠️This tool has been merged into the main CRCON in v11.4.0 (feb 18th 2025)  
+> ⚠️This tool has been merged into the main CRCON code in v11.4.0 (feb 18th 2025)  
 > If you have installed it on a prior version, please uninstall it before upgrading CRCON.
 >   
 > Basically, you just have to delete its section in `config/supervisord.conf`  
