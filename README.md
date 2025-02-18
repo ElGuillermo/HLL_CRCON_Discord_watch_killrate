@@ -1,6 +1,11 @@
 > [!CAUTION]  
 > ⚠️This tool has been merged into the main CRCON in v11.4.0 (feb 18th 2025)  
-> If you're still using it, please uninstall it before upgrading CRCON.
+> If you have installed it on a prior version, please uninstall it before upgrading CRCON.
+>   
+> Basically, you just have to delete its section in `config/supervisord.conf`  
+> You also can delete its files :
+> - `custom_tools/watch_killrate.py`
+> - `custom_tools/watch_killrate_config.py`
 
 ---
 
