@@ -1,3 +1,8 @@
+# ⚠️This tool has been merged into the main CRCON in v11.4.0 (feb 18th 2025)
+#  If you're still using it, please uninstall it before upgrading CRCON
+
+---
+
 # HLL_CRCON_Discord_watch_killrate
 A plugin for Hell Let Loose (HLL) CRCON (see : https://github.com/MarechJ/hll_rcon_tool) that watches and report players who get "too much" kills per minute in a Discord channel.
 
