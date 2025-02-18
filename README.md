@@ -1,5 +1,6 @@
-# ⚠️This tool has been merged into the main CRCON in v11.4.0 (feb 18th 2025)
-#  If you're still using it, please uninstall it before upgrading CRCON
+> [!CAUTION]  
+> ⚠️This tool has been merged into the main CRCON in v11.4.0 (feb 18th 2025)  
+> If you're still using it, please uninstall it before upgrading CRCON
 
 ---
 
