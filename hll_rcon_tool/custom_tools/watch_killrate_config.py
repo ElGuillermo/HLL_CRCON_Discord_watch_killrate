@@ -1,8 +1,9 @@
 """
 watch_killrate_config.py
 
-A plugin for HLL CRCON (https://github.com/MarechJ/hll_rcon_tool)
-that filters (kick) players based upon their language.
+A plugin for Hell Let Loose (HLL) CRCON
+(see : https://github.com/MarechJ/hll_rcon_tool)
+that watches and report players who get "too much" kills per minute. 
 
 Source : https://github.com/ElGuillermo
 
